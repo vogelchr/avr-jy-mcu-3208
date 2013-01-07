@@ -29,15 +29,14 @@ ht1632c_stop(void)
 	HT1632C_PORT |= HT1632C_CS;
 }
 
+/* clock out bits to HT1632C, start with the bit
+ * indicated by mask (MSB). */
 static void
-ht1632c_bits(uint8_t bits, uint8_t n)
+ht1632c_bits_mask(uint8_t bits, uint8_t mask)
 {
-	uint8_t m;	/* bitmask */
-	m = 1 << (n-1);	/* start with MSB */
-
-	while ( m ) {	/* 8 bits, until we have shifted out the 1 */
+	while ( mask ) {	/* 8 bits, until we have shifted out the 1 */
 		HT1632C_PORT &= ~ HT1632C_WRCLK;
-		if ( bits & m )
+		if ( bits & mask )
 			HT1632C_PORT |= HT1632C_DATA;
 		else
 			HT1632C_PORT &= ~ HT1632C_DATA;
@@ -46,17 +45,23 @@ ht1632c_bits(uint8_t bits, uint8_t n)
 		HT1632C_PORT |= HT1632C_WRCLK;
 		BIT_SLEEP;
 
-		m >>= 1;
+		mask >>= 1;
 	}
 }
+
+/* gcc does not inline ht1532c_bits_mask, because it's huge. But
+ * the 1 << (n-1) is actually pretty complicated on
+ * AVR { implemented as while(i) k<<= 1 }.
+ */
+#define HT1632C_BITS(bits,n) ht1632c_bits_mask((bits),1 << ((n)-1))
 
 void
 ht1632c_cmd(uint8_t cmd)
 {
 	ht1632c_start();
-	ht1632c_bits(0x04, 3);	/* 1 0 0 */
-	ht1632c_bits(cmd,  8);	/* ... command ... */
-	ht1632c_bits(0,    1);	/* ... dummy? ... */
+	HT1632C_BITS(0x04, 3);	/* 1 0 0 */
+	HT1632C_BITS(cmd,  8);	/* ... command ... */
+	HT1632C_BITS(0,    1);	/* ... dummy? ... */
 	ht1632c_stop();
 }
 
@@ -103,9 +108,9 @@ void
 ht1632c_data4(uint8_t addr, uint8_t nibble)
 {
 	ht1632c_start();
-	ht1632c_bits(0x05,  3 );  /* 1 0 1 */
-	ht1632c_bits(addr,  7 );  /* ... command ... */
-	ht1632c_bits(nibble,4 );  /* dataheet shows 4 dummy clock cycles? */
+	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
+	HT1632C_BITS(addr,  7 );  /* ... command ... */
+	HT1632C_BITS(nibble,4 );  /* dataheet shows 4 dummy clock cycles? */
 	ht1632c_stop();
 }
 
@@ -113,9 +118,9 @@ void
 ht1632c_data8(uint8_t addr, uint8_t byte)
 {
 	ht1632c_start();
-	ht1632c_bits(0x05,  3 );  /* 1 0 1 */
-	ht1632c_bits(addr,  7 );  /* ... command ... */
-	ht1632c_bits(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
+	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
+	HT1632C_BITS(addr,  7 );  /* ... command ... */
+	HT1632C_BITS(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
 	ht1632c_stop();
 }
 
@@ -127,8 +132,8 @@ ht1632c_flush_fb(uint8_t *fbmem)
 	uint8_t byte, ledbit;
 
 	ht1632c_start();
-	ht1632c_bits(0x05,  3 );  /* 1 0 1 */
-	ht1632c_bits(addr,  7 );  /* ... command ... */
+	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
+	HT1632C_BITS(addr,  7 );  /* ... command ... */
 
 	for(addr=0;addr < 64; addr+= 2){
 		byte=0;
@@ -147,7 +152,7 @@ ht1632c_flush_fb(uint8_t *fbmem)
 		}
 		fbmem -= 8;		/* move back FB memory pointer */
 
-		ht1632c_bits(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
+		HT1632C_BITS(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
 
 		fbbit <<= 1;		/* move to next row in FB */
 		if(!fbbit){		/* reached bottom row?... */
