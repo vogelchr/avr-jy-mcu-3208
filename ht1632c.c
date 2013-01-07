@@ -10,7 +10,10 @@
 #define HT1632C_WRCLK		_BV(4)
 #define HT1632C_DATA		_BV(5)
 
+/*
 #define BIT_SLEEP do { asm volatile ("nop;\n\tnop;\n\tnop;\n"); } while(0)
+*/
+#define BIT_SLEEP do { } while(0)
 
 static void
 ht1632c_start(void)
@@ -119,27 +122,38 @@ ht1632c_data8(uint8_t addr, uint8_t byte)
 void
 ht1632c_flush_fb(uint8_t *fbmem)
 {
-	uint8_t row=0;
-	uint8_t col=0;
 	uint8_t addr=0;
-	uint16_t fbbit;
-	uint8_t byte;
-	uint8_t i;
+	uint8_t fbbit=1;
+	uint8_t byte, ledbit;
 
 	ht1632c_start();
 	ht1632c_bits(0x05,  3 );  /* 1 0 1 */
 	ht1632c_bits(addr,  7 );  /* ... command ... */
 
 	for(addr=0;addr < 64; addr+= 2){
-		col=(addr & 0xf0)>>1;
-		row=(addr & 0x0e)>>1;
-		fbbit = (1UL << row);
 		byte=0;
 
-		for(i=0;i<8;i++)
-			if(fbmem[col+i] & fbbit)
-				byte |= 1<<(7-i);
+		/* for one 8-pixel-block from left to right
+		 * the framebuffer (byte) address increases and
+		 * the LED matrix controller bit number decreases, so...
+		 */
+
+		ledbit = 0x80; /* start MSB */
+		while(ledbit){
+			if(*fbmem & fbbit)
+				byte |= ledbit;
+			fbmem++;	/* next column in FB */
+			ledbit >>= 1;	/* next column in LED controller */
+		}
+		fbmem -= 8;		/* move back FB memory pointer */
+
 		ht1632c_bits(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
+
+		fbbit <<= 1;		/* move to next row in FB */
+		if(!fbbit){		/* reached bottom row?... */
+			fbmem += 8;	/* move to next block */
+			fbbit++;	/* start at 1 */
+		}
 	}
 
 	ht1632c_stop();
