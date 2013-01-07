@@ -1,0 +1,101 @@
+Firmware for a Deal Extreme “JY-MCU 3208 Lattice Clock”.
+
+Schematics found at http://fw.hardijzer.nl/?p=148 (as of 2012-12-30).
+
+Components used on this particular board are:
+
+ • 4 8x8 LED matrices
+ • Holtek HT1632C LED Matrix Controller
+ • AVR AT-Mega8 MCU (8k flash, 1k RAM, 512b EEPROM)
+
+Optionally, there is place for
+
+ • RX-8025NB, RX8025SA or DS1302 RTC
+ • Buzzer (Port PC0)
+ • IR Receiver (?)
+ • 1 Wire Thermometer (DS18B20)
+
+Mega8 Ports and Pins
+
+	Port	Alternate Fct.	Schematic Name	Description
+	-------:---------------:---------------:------------------------------
+	ADC6	-		-		(unused)
+	ADC7	-				(unused)
+	PB0	ICP1		SCL_INTA	to RTCs
+	PB1	OC1A		I/O_SCL		to RTCs
+	PB2	OC1B		RST_SDA		to RTCs
+	PB3	MOSI		\CS, MOSI	HT1632C \CS and ISP conn.
+	PB4	MISO		\WR, MISO	HT1632C \WR and ISP conn.
+	PB5	SCK		DATA, SCK	HT1632C DATA and ISP conn.
+	PB6	XTAL1		-		32k768 Xtal
+	PB7	XTAL2		-		32k768 Xtal
+	PC0	ADC0		PC0		Buzzer
+	PC1	ADC1		-		2/5 of Vcc (15k/10k divider)
+	PC2	ADC2		DQ		1Wire (18B20)
+	PC3	ADC3		INTB		to RTCs
+	PC4	ADC4/SDA	PC4		LED1 (A, via 2.2 kOhm)
+	PC5	ADC5/SCL	PC5		LED1 (K)
+	PC6	RST		RST		ISP conn, 100k Pullup
+	PD0	RxD		RxD		ISP conn (serial port)
+	PD1	TxD		TxD		ISP conn
+	PD2	INT0		D+		USB Connector via R.
+	PD3	INT1		INT1		IR Receiver, Pin1
+	PD4	XCK/T0		D-		USB Connector via R
+	PD5	T1		KEY3		Button to GND
+	PD6	AIN0		KEY2		Button to GND
+	PD7	AIN1		KEY1		Button to GND
+	-------:---------------:---------------:------------------------------
+
+FUSE Settings
+
+Original Settings
+	hfuse	0xc9	0b1100_1001
+
+			7: RSTDISBL	1    (default, PC6 is \RESET)
+			6: WDTON	1    (default, WTD enabled by WDTCR)
+			5: SPIEN	0    (default, SPI enabled)
+			4: CKOPT	0    (0: enable int. XTAL-C)
+			3: EESAVE	1    (default: EEPROM clear on erase)
+			2-1: BOOTSZ1-0	0b00 (1024 words 0xc00-0xfff)
+			0: BOOTRST	1    (default, bootloader inactive)
+
+	lfuse	0xe1	0b1110_0001
+
+			7: BODLEVEL	1	(BOD off)
+			6: BODEN	1	(BOD off)
+			5-4: SUT1-0	0b10	(32k cycles, slow)
+			3-0: CKSEL3-0	0b0001	(internal RC Osc)
+
+	lock	0x3f	-> everything unlocked
+
+Our settings:
+	hfuse	0xc9	0b1100_1001
+
+	lfuse	0x21	0b0010_0001
+			7-6: BODLEVEL, BODEN (enable brown out detector @ 4V)
+
+	lock	0x3f
+
+LED Matrix Connection
+
+The LED matrix is connected in a 32x8 fashion to the MCU, the correct configuration
+to be stored in the HT1632C is n-channel outputs and 8 common drivers.
+
+Addressing is by 4bit groups (nibbles) with the MSB being the leftmost pixel
+of each group.
+
+┌─────────────────────────────────────────┬─────┐
+│ 00__ 01__ 16__ 17__ 32__ 33__ 48__ 49__ │ PWR>│
+│ 02__ 03__       :         :         :   │     │
+│ 04__ 05__   :        :         :        │     │
+│ 06__ 07__       :         :         :   │ ┌─┐ │
+│ 08__ 09__   :        :         :        │ │PR │
+│ 10__ 11__       :         :         :   │ │OG │
+│ 12__ 13__   :        :         :        │ └─┘ │
+│ 14__ 15__ 30__ 31__ 46__ 47__ 62__ 63__ │     │
+└─────────────────────────────────────────┴─────┘
+  <───────> <───────>  <───────> <───────>
+  1st Matrix 2nd        3rd       4th
+
+  00__ are the left upmost pixels, with bits allocated MSB first.
+
