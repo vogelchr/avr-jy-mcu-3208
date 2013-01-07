@@ -55,6 +55,7 @@ ht1632c_bits_mask(uint8_t bits, uint8_t mask)
  */
 #define HT1632C_BITS(bits,n) ht1632c_bits_mask((bits),1 << ((n)-1))
 
+/* send a 8-bit command to the LED controller */
 void
 ht1632c_cmd(uint8_t cmd)
 {
@@ -104,26 +105,29 @@ ht1632c_opts(uint8_t val){
 	ht1632c_cmd(0x20 | val ); /* 0010-abXX-X and 0001-11XX-X */
 }
 
+/* write 4 bits of data to LED matrix controller */
 void
 ht1632c_data4(uint8_t addr, uint8_t nibble)
 {
 	ht1632c_start();
 	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
 	HT1632C_BITS(addr,  7 );  /* ... command ... */
-	HT1632C_BITS(nibble,4 );  /* dataheet shows 4 dummy clock cycles? */
+	HT1632C_BITS(nibble,4 );
 	ht1632c_stop();
 }
 
+/* write 8 bits to address addr & addr + 1 */
 void
 ht1632c_data8(uint8_t addr, uint8_t byte)
 {
 	ht1632c_start();
 	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
 	HT1632C_BITS(addr,  7 );  /* ... command ... */
-	HT1632C_BITS(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
+	HT1632C_BITS(byte,  8 );
 	ht1632c_stop();
 }
 
+/* flush a 32x8 framebuffer to the LED matrix */
 void
 ht1632c_flush_fb(uint8_t *fbmem)
 {
@@ -152,7 +156,7 @@ ht1632c_flush_fb(uint8_t *fbmem)
 		}
 		fbmem -= 8;		/* move back FB memory pointer */
 
-		HT1632C_BITS(byte,  8 );  /* dataheet shows 4 dummy clock cycles? */
+		HT1632C_BITS(byte,  8 );
 
 		fbbit <<= 1;		/* move to next row in FB */
 		if(!fbbit){		/* reached bottom row?... */
