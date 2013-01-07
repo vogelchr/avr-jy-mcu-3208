@@ -133,15 +133,13 @@ ht1632c_flush_fb(uint8_t *fbmem)
 {
 	uint8_t addr=0;
 	uint8_t fbbit=1;
-	uint8_t byte, ledbit;
+	uint8_t ledbit;
 
 	ht1632c_start();
 	HT1632C_BITS(0x05,  3 );  /* 1 0 1 */
 	HT1632C_BITS(addr,  7 );  /* ... command ... */
 
 	for(addr=0;addr < 64; addr+= 2){
-		byte=0;
-
 		/* for one 8-pixel-block from left to right
 		 * the framebuffer (byte) address increases and
 		 * the LED matrix controller bit number decreases, so...
@@ -149,14 +147,16 @@ ht1632c_flush_fb(uint8_t *fbmem)
 
 		ledbit = 0x80; /* start MSB */
 		while(ledbit){
+			HT1632C_PORT &= ~ HT1632C_WRCLK;
 			if(*fbmem & fbbit)
-				byte |= ledbit;
+				HT1632C_PORT |= HT1632C_DATA;
+			else
+				HT1632C_PORT &= ~ HT1632C_DATA;
 			fbmem++;	/* next column in FB */
 			ledbit >>= 1;	/* next column in LED controller */
+			HT1632C_PORT |= HT1632C_WRCLK;
 		}
 		fbmem -= 8;		/* move back FB memory pointer */
-
-		HT1632C_BITS(byte,  8 );
 
 		fbbit <<= 1;		/* move to next row in FB */
 		if(!fbbit){		/* reached bottom row?... */
