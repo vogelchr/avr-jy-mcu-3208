@@ -17,6 +17,26 @@ static uint8_t addr = 0;
 
 static uint8_t fb[32];
 
+
+static void
+zigzag(int8_t *direction, uint8_t *ctr, uint8_t max)
+{
+	if(!*direction)
+		return;
+
+	if(*direction > 0){
+		if(*ctr < max)
+			(*ctr)++;
+		else
+			*direction = -1;
+	} else {
+		if(*ctr > 0)
+			(*ctr)--;
+		else
+			*direction = 1;
+	}
+}
+
 int8_t demo;
 uint8_t ctr;
 
@@ -31,32 +51,18 @@ main(void)
 	puts_P(hello_str);
 
 	for(c=0;c<32;c++)
-		fb[c]=c;
+		fb[(int)c]=c;
 	ht1632c_flush_fb(fb);
+
+	demo=1;
 
 	for(;;){
 		if(demo){
-			uint8_t col,row;
-
-			if(demo > 0){
-				if(ctr < 255)
-					ctr++;
-				if(ctr == 255)
-					demo = -1;
-			} else {
-				if(ctr > 0)
-					ctr--;
-				if(ctr == 0)
-					demo = 1;
-			}
-
-			col = ctr >> 3;
-			row = ctr & 0x07;
-
+			zigzag(&demo,&ctr,31);
 			if(demo > 0)
-				fb[col] &= ~(1<<row);
+				fb[ctr]=0;
 			else
-				fb[col] |=  (1<<row);
+				fb[ctr]=0xff;
 			ht1632c_flush_fb(fb);
 		}
 
@@ -75,18 +81,11 @@ main(void)
 			if(c == '-' && bright > 0)
 				bright--;
 			ht1632c_bright(bright);
+			printf_P(PSTR("Brightness set to %d.\n"),bright);
 		}
 		if(c == 'o' || c == 'f')
 			ht1632c_onoff(c == 'o');
 		if(c == 'B' || c == 'b')
 			ht1632c_blinkonoff(c == 'B');
-		if(c == '<' || c == '>'){
-			ht1632c_data4(addr,0);
-			if(c == '>' && addr < 63)
-				addr++;
-			if(c == '<' && addr > 0)
-				addr--;
-			ht1632c_data8(addr,0x91);
-		}
 	}
 }
