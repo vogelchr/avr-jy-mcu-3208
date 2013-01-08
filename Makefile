@@ -16,7 +16,9 @@ CFLAGS=-mmcu=$(DEVICE_CC) -Os -Wall -g -DF_CPU=1000000
 
 MYNAME=jy_mcu
 
-OBJS=$(MYNAME).o ht1632c.o serial.o
+FONTS=font6x8.png
+
+OBJS=$(MYNAME).o ht1632c.o serial.o $(FONTS:.png=.o)
 
 all : $(MYNAME).hex $(MYNAME).lst
 
@@ -31,6 +33,9 @@ $(MYNAME).bin : $(OBJS)
 %.bin : %.o
 	$(LD) $(LDFLAGS) -o $@ $^
 
+%.c : %.txt %.png
+	./png_to_font.py $*.txt $*.png >$@ || (rm -f $@ ; false)
+
 ifneq "$(MAKECMDGOALS)" "clean" 
 include $(OBJS:.o=.d)
 endif
@@ -42,4 +47,4 @@ endif
 burn : $(MYNAME).hex
 	$(AVRDUDE) $(PROGRAMMER_DUDE) -p $(DEVICE_DUDE) -U flash:w:$^
 clean :
-	rm -f *.bak *~ *.bin *.hex *.lst *.o *.d
+	rm -f *.bak *~ *.bin *.hex *.lst *.o *.d $(FONTS:.png=.c)

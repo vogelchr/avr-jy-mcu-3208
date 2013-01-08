@@ -1,0 +1,10 @@
+[font]
+width=6
+height=8
+img_offs_x=1
+img_offs_y=1
+img_skip_x=1
+img_skip_y=1
+cells_per_row=4
+chars='1'-'9','0',0x64,0x32
+symbol_name=font6x8
