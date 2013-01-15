@@ -18,7 +18,7 @@ MYNAME=jy_mcu
 
 FONTS=font6x8.png
 
-OBJS=$(MYNAME).o ht1632c.o serial.o $(FONTS:.png=.o)
+OBJS=$(MYNAME).o ht1632c.o serial.o $(FONTS:.png=.o) fonts.o
 
 all : $(MYNAME).hex $(MYNAME).lst
 
