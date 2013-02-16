@@ -127,6 +127,14 @@ ht1632c_data8(uint8_t addr, uint8_t byte)
 	ht1632c_stop();
 }
 
+void
+ht1632c_clear_fb(uint8_t *fbmem)
+{
+	uint8_t i;
+	for(i=0;i<HT1632C_WIDTH;i++)
+		*fbmem++ = 0;
+}
+
 /* flush a 32x8 framebuffer to the LED matrix */
 void
 ht1632c_flush_fb(uint8_t *fbmem)

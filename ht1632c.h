@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define HT1632C_WIDTH 32
+#define HT1632C_HEIGHT 8
+
 /* set brightness, val = 0 (1/16 pwm) ... 15 (16/16 pwm) */
 extern void ht1632c_bright(uint8_t val);
 
@@ -41,5 +44,8 @@ extern void ht1632c_data8(uint8_t addr, uint8_t byte);
 
 /* flush a 32byte/8bit framebuffer to LED matrix */
 extern void ht1632c_flush_fb(uint8_t *fbmem);
+
+/* clear framebuffer (all LEDs off) */
+extern void ht1632c_clear_fb(uint8_t *fbmem);
 
 #endif
