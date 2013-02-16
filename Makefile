@@ -16,7 +16,7 @@ CFLAGS=-mmcu=$(DEVICE_CC) -Os -Wall -g -DF_CPU=1000000
 
 MYNAME=jy_mcu
 
-FONTS=font6x8.png
+FONTS=font6x8.png font4x5.png
 
 OBJS=$(MYNAME).o ht1632c.o serial.o $(FONTS:.png=.o) fonts.o
 
