@@ -4,6 +4,7 @@
 
 #include "serial.h"
 #include "ht1632c.h"
+#include "fonts.h"
 
 
 static const PROGMEM char hello_str[]="\n\n"
@@ -12,33 +13,17 @@ static const PROGMEM char hello_str[]="\n\n"
 	"\t**  (c) 2013 Christian Vogel <vogelchr@vogel.cx>  **\n"
 	"\t****************************************************\n\n";
 
-static uint8_t bright = 0;
-static uint8_t addr = 0;
-
-static uint8_t fb[32];
-
+static uint8_t bright = 0;	/* current LED brightness */
+static uint8_t fb[32];		/* framebuffer */
+static char buf[8]; /* general purpose */
 
 static void
-zigzag(int8_t *direction, uint8_t *ctr, uint8_t max)
+led_msg(const char *msg)
 {
-	if(!*direction)
-		return;
-
-	if(*direction > 0){
-		if(*ctr < max)
-			(*ctr)++;
-		else
-			*direction = -1;
-	} else {
-		if(*ctr > 0)
-			(*ctr)--;
-		else
-			*direction = 1;
-	}
+	ht1632c_clear_fb(fb);
+	font_puts_RAM(FONT4X5, msg, fb, 0, HT1632C_WIDTH, 0, FONT_STAMP_NORM);
+	ht1632c_flush_fb(fb);
 }
-
-int8_t demo;
-uint8_t ctr;
 
 int
 main(void)
@@ -50,42 +35,51 @@ main(void)
 
 	puts_P(hello_str);
 
+	/* fill random text pattern */
 	for(c=0;c<32;c++)
 		fb[(int)c]=c;
 	ht1632c_flush_fb(fb);
 
-	demo=1;
-
 	for(;;){
-		if(demo){
-			zigzag(&demo,&ctr,31);
-			if(demo > 0)
-				fb[ctr]=0;
-			else
-				fb[ctr]=0xff;
-			ht1632c_flush_fb(fb);
-		}
-
-		if(! serial_status())
+		if(! serial_status()) /* wait for charater to be input */
 			continue;
 		c = getchar();
-
-		if(c == 'd')
-			demo=1;
-		if(c == 'D')
-			demo=0;
 
 		if(c == '-' || c == '+'){
 			if(c == '+' && bright < 15)
 				bright++;
 			if(c == '-' && bright > 0)
 				bright--;
-			ht1632c_bright(bright);
+
 			printf_P(PSTR("Brightness set to %d.\n"),bright);
+
+			sprintf_P(buf,PSTR("BR %d"),bright);
+			puts(buf);
+			led_msg(buf);
+
+			ht1632c_bright(bright);
 		}
+
 		if(c == 'o' || c == 'f')
 			ht1632c_onoff(c == 'o');
+
 		if(c == 'B' || c == 'b')
 			ht1632c_blinkonoff(c == 'B');
+
+		if(c == '?'){
+			puts_P(hello_str);
+		}
+
+		if(c == 't'){
+			ht1632c_clear_fb(fb);
+			font_puts_P(FONT6X8, PSTR("0123"), fb, 0, HT1632C_WIDTH, 0, FONT_STAMP_NORM);
+			ht1632c_flush_fb(fb);
+		}
+
+		if(c == 'T'){
+			ht1632c_clear_fb(fb);
+			font_puts_P(FONT4X5, PSTR("HELLO@"), fb, 0, HT1632C_WIDTH, 0, FONT_STAMP_NORM);
+			ht1632c_flush_fb(fb);
+		}
 	}
 }
