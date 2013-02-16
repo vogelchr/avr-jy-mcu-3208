@@ -7,12 +7,13 @@ PROGRAMMER_DUDE = -Pusb -c dragon_isp -B8.0 -v
 AVRDUDE=avrdude
 OBJCOPY=avr-objcopy
 OBJDUMP=avr-objdump
+SIZE=avr-size
 CC=avr-gcc
 LD=avr-gcc
 
 LDFLAGS=-Wall -g -mmcu=$(DEVICE_CC)
 CPPFLAGS=
-CFLAGS=-mmcu=$(DEVICE_CC) -Os -Wall -g -DF_CPU=1000000
+CFLAGS=-mmcu=$(DEVICE_CC) -Os -Wall -Wextra -g -DF_CPU=1000000
 
 MYNAME=jy_mcu
 
@@ -29,6 +30,7 @@ $(MYNAME).bin : $(OBJS)
 
 %.lst : %.bin
 	$(OBJDUMP) -S $^ >$@ || (rm -f $@ ; false )
+	$(SIZE) $^
 
 %.bin : %.o
 	$(LD) $(LDFLAGS) -o $@ $^
