@@ -1,8 +1,8 @@
 DEVICE_CC = atmega8
 DEVICE_DUDE = m8
 
-# PROGRAMMER_DUDE = -Pusb -c dragon_isp
-PROGRAMMER_DUDE = -P/dev/parport0 -c xil
+PROGRAMMER_DUDE = -Pusb -c dragon_isp -B8.0 -v
+# PROGRAMMER_DUDE = -P/dev/parport0 -c xil
 
 AVRDUDE=avrdude
 OBJCOPY=avr-objcopy
