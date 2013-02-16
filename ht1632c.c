@@ -132,7 +132,7 @@ void
 ht1632c_flush_fb(uint8_t *fbmem)
 {
 	uint8_t addr=0;
-	uint8_t fbbit=1;
+	uint8_t fbbit=0x80;
 	uint8_t ledbit;
 
 	ht1632c_start();
@@ -158,10 +158,10 @@ ht1632c_flush_fb(uint8_t *fbmem)
 		}
 		fbmem -= 8;		/* move back FB memory pointer */
 
-		fbbit <<= 1;		/* move to next row in FB */
+		fbbit >>= 1;		/* move to next row in FB */
 		if(!fbbit){		/* reached bottom row?... */
 			fbmem += 8;	/* move to next block */
-			fbbit++;	/* start at 1 */
+			fbbit=0x80;	/* start at 1 */
 		}
 	}
 
