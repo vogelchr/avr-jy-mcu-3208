@@ -55,6 +55,8 @@ uart_put_into_outbuf(unsigned char c){
 static int
 uart_putchar(char c, FILE *stream)
 {
+	(void) stream; /* silence warning */
+
 	if(c == '\r')
 		return 0;
 	if(c == '\n')
@@ -66,6 +68,8 @@ uart_putchar(char c, FILE *stream)
 static int
 uart_getchar(FILE *stream)
 {
+	(void) stream; /* silence warning */
+
 	/* wait for Receive Complete bit to be set */
 	while(!serial_status()); /* wait... */
 	return UDR;
