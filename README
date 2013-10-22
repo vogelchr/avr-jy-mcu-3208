@@ -46,6 +46,22 @@ Mega8 Ports and Pins
 	PD7	AIN1		KEY1		Button to GND
 	-------:---------------:---------------:------------------------------
 
+ISP + Serial Port Connector
+
+	.................................
+                                        :
+	-------+         +------------+ :
+	       |         | POWER_CONN | :
+	       |         +------------+ :
+	       |                        :
+	       | GND     10 --o o-- 9 PB4/MISO
+	Matrix | PD0/RxD  8 --o o-- 7 PB5/SCK
+	       | PD1/TxD  6 --o o-- 5 PC6/RST
+	       | GND      4 --o o-- 3 n/c
+	-------+ Vcc      2 --o o-- 1 PB3/MOSI
+	                                :
+	................................:
+
 FUSE Settings
 
 Original Settings
