@@ -51,7 +51,7 @@ print('Image %s has size %d,%d.'%(args[1],IMG.size[0],IMG.size[1]), file=sys.std
 
 for i,c in enumerate(parse_char_range(CP.get('font','chars'))) :
 	col = i % cells_per_row
-	row = i / cells_per_row
+	row = i // cells_per_row
 #	print >>sys.stderr,'  #%d: Getting character 0x%02x from image at %d/%d.'%(i,c,col,row)
 
 	character_offset_arr.append( (c,len(pixel_data_arr)) )
