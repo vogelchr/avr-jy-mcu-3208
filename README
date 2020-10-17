@@ -64,31 +64,12 @@ ISP + Serial Port Connector
 
 FUSE Settings
 
-Original Settings
-	hfuse	0xc9	0b1100_1001
+	hfuse	0xc9	(def: 0x99)
+		-> disabled watchdog, enabled CKOPT fuse (for clock selection)
 
-			7: RSTDISBL	1    (default, PC6 is \RESET)
-			6: WDTON	1    (default, WTD enabled by WDTCR)
-			5: SPIEN	0    (default, SPI enabled)
-			4: CKOPT	0    (0: enable int. XTAL-C)
-			3: EESAVE	1    (default: EEPROM clear on erase)
-			2-1: BOOTSZ1-0	0b00 (1024 words 0xc00-0xfff)
-			0: BOOTRST	1    (default, bootloader inactive)
+	lfuse	0xe4	(def: c1)
+		-> 8 MHz internal clock
 
-	lfuse	0xe1	0b1110_0001
-
-			7: BODLEVEL	1	(BOD off)
-			6: BODEN	1	(BOD off)
-			5-4: SUT1-0	0b10	(32k cycles, slow)
-			3-0: CKSEL3-0	0b0001	(internal RC Osc)
-
-	lock	0x3f	-> everything unlocked
-
-Our settings:
-	hfuse	0xc9	0b1100_1001
-
-	lfuse	0x21	0b0010_0001
-			7-6: BODLEVEL, BODEN (enable brown out detector @ 4V)
 
 	lock	0x3f
 

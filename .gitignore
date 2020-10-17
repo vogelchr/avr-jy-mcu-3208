@@ -1,0 +1,8 @@
+*.d
+*.o
+*.bin
+*.lst
+*.hex
+font4x5.c
+font6x8.c
+menu_items.c
