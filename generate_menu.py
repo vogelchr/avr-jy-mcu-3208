@@ -53,6 +53,7 @@ input_menu = [
 
 timer_menu = [
     ('UP/DWN', 'CLOCK_UI_CHOOSER', 'CHOOSER_ITEM_TIMER_DIRECTION', ['UP', 'DOWN']),
+    ('SET', 'CLOCK_UI_TIMER_SET' ),
 ]
 
 display_menu = [

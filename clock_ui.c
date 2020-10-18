@@ -7,6 +7,13 @@
 
 #include <stdio.h>
 
+/*
+ * this file runs the complete user-interface of the clock, it
+ * is driven by the enter/refresh handlers which get called when
+ * one particular UI element is started, or when an event
+ * is received (event can be a keypress, or a timer tick)
+ */
+
 struct clock_ui_handler {
 	void (*on_enter)(uint8_t);
 	enum clock_ui_state (*on_refresh)(uint8_t);
@@ -14,7 +21,8 @@ struct clock_ui_handler {
 
 uint8_t fb[32]; /* framebuffer */
 
-static uint8_t clock_ui_state;
+static uint8_t clock_ui_state; /* index into clock_ui_handlers[] array */
+/* menu "context", updated when entering e.g. a submenu for a particular channel */
 static uint8_t clock_ui_context_ch;
 
 /* ====== CHOOSER ======================================================== */
@@ -36,7 +44,7 @@ static uint8_t clock_ui_chooser_getval()
 	case CHOOSER_ITEM_INPUT_POLARITY:
 		return sysconfig.input_polarity[ch];
 	case CHOOSER_ITEM_TIMER_DIRECTION:
-		return !!(sysconfig.timer_flags &
+		return !!(clock_timer_get_flags() &
 			  SYSCONFIG_TIMER_FLAGS_DIR_DOWN);
 	}
 	return 0;
@@ -139,6 +147,8 @@ static enum clock_ui_state clock_ui_chooser_refresh(uint8_t event)
 
 /* ====== BRIGHTNESS ======================================================== */
 
+/* adjust the LED brightness */
+
 static void clock_ui_brightness_enter(uint8_t old_state)
 {
 	(void)old_state;
@@ -154,6 +164,8 @@ static enum clock_ui_state clock_ui_brightness_refresh(uint8_t event)
 		return CLOCK_UI_TIME_NOCHANGE;
 
 	brightness = sysconfig.brightness;
+	if (brightness > 15)
+		brightness = 15;
 
 	if (CLOCK_TIMER_EVENT_IS_KEY(event)) {
 		if (event & CLOCK_TIMER_KEY_MIDDLE) {
@@ -180,6 +192,9 @@ static enum clock_ui_state clock_ui_brightness_refresh(uint8_t event)
 
 /* ====== MENU =========================================================== */
 
+/* main menu logic */
+
+/* currently shown menu item, index into menu_items[] */
 static uint8_t clock_ui_menu_curr;
 
 static void clock_ui_menu_enter(uint8_t old_state)
@@ -245,6 +260,8 @@ static enum clock_ui_state clock_ui_menu_refresh(uint8_t event)
 }
 
 /* ====== CLOCK ========================================================== */
+
+/* display the big clock */
 
 enum clock_ui_time_big_type {
 	CLOCK_UI_TIME_BIG_HM,
@@ -358,6 +375,134 @@ static enum clock_ui_state clock_ui_time_big_refresh(uint8_t event)
 	return CLOCK_UI_TIME_NOCHANGE;
 }
 
+/* ===== TIMER SET ======================================================= */
+
+enum clock_ui_timer_set_what {
+	CLOCK_UI_TIMER_SET_HOUR,
+	CLOCK_UI_TIMER_SET_MIN,
+	CLOCK_UI_TIMER_SET_SEC,
+	CLOCK_UI_TIMER_SET_CONFIRM,
+};
+
+enum clock_ui_timer_set_what clock_ui_timer_set_what;
+uint32_t clock_ui_timer_set_val;
+
+static void clock_ui_timer_set_enter(uint8_t old_state)
+{
+	(void)old_state;
+	clock_ui_timer_set_what = CLOCK_UI_TIMER_SET_HOUR;
+	clock_ui_timer_set_val = sysconfig.timer_set.u32;
+	ht1632c_clear_fb(fb);
+}
+
+static enum clock_ui_state clock_ui_timer_set_refresh(uint8_t event)
+{
+	enum clock_ui_timer_set_what what = clock_ui_timer_set_what;
+	union clock_timer_u32_hmsf val;
+	char msg[16];
+
+	val.u32 = clock_ui_timer_set_val;
+	uint8_t single, maxval;
+
+	if (!event)
+		return CLOCK_UI_TIME_NOCHANGE;
+
+	switch (what) {
+	case CLOCK_UI_TIMER_SET_HOUR:
+		single = val.hmsf.h;
+		maxval = 23;
+		break;
+	case CLOCK_UI_TIMER_SET_MIN:
+		single = val.hmsf.m;
+		maxval = 59;
+		break;
+	case CLOCK_UI_TIMER_SET_SEC:
+		single = val.hmsf.s;
+		maxval = 59;
+		break;
+	default:
+		single = 0;
+		maxval = 0;
+	}
+
+	/* handle keys */
+	if (CLOCK_TIMER_EVENT_IS_KEY(event)) {
+		if (what == CLOCK_UI_TIMER_SET_CONFIRM) {
+			if (event & CLOCK_TIMER_KEY_TOP) {
+				clock_timer_set_timer(val.u32);
+				return CLOCK_UI_MENU;
+			}
+			if (event & CLOCK_TIMER_KEY_BOTTOM)
+				return CLOCK_UI_MENU;
+		}
+
+		if (event & CLOCK_TIMER_KEY_MIDDLE) {
+			if (what == CLOCK_UI_TIMER_SET_CONFIRM)
+				what = CLOCK_UI_TIMER_SET_HOUR;
+			else
+				what++;
+			clock_ui_timer_set_what = what;
+			return CLOCK_UI_TIME_NOCHANGE;
+		}
+
+		if (event & CLOCK_TIMER_KEY_TOP) {
+			if (single == maxval)
+				single = 0;
+			else
+				single++;
+		}
+		if (event & CLOCK_TIMER_KEY_BOTTOM) {
+			if (single == 0)
+				single = maxval;
+			else
+				single--;
+		}
+
+		switch (what) {
+		case CLOCK_UI_TIMER_SET_HOUR:
+			val.hmsf.h = single;
+			break;
+		case CLOCK_UI_TIMER_SET_MIN:
+			val.hmsf.m = single;
+			break;
+		case CLOCK_UI_TIMER_SET_SEC:
+			val.hmsf.s = single;
+			break;
+		default:
+			break;
+		}
+		clock_ui_timer_set_val = val.u32;
+	}
+
+	ht1632c_clear_fb(fb);
+
+	switch (what) {
+	case CLOCK_UI_TIMER_SET_HOUR:
+		strcpy_P(msg, PSTR("HOUR"));
+		break;
+	case CLOCK_UI_TIMER_SET_MIN:
+		strcpy_P(msg, PSTR("MIN."));
+		break;
+	case CLOCK_UI_TIMER_SET_SEC:
+		strcpy_P(msg, PSTR("SEC."));
+		break;
+	case CLOCK_UI_TIMER_SET_CONFIRM:
+		strcpy_P(msg, PSTR("CONFIR"));
+		break;
+	}
+
+	font_puts_RAM(FONT4X5, msg, fb, 0, HT1632C_WIDTH, 3, FONT_STAMP_NORM);
+
+	if (what != CLOCK_UI_TIMER_SET_CONFIRM) {
+		sprintf_P(msg, PSTR("%02d"), single);
+		font_puts_RAM(FONT4X5, msg, fb, 23, HT1632C_WIDTH - 23, 0,
+			      FONT_STAMP_NORM);
+	}
+	ht1632c_flush_fb(fb);
+
+	return CLOCK_UI_TIME_NOCHANGE;
+}
+
 PROGMEM static const struct clock_ui_handler clock_ui_handlers[] = {
 	[CLOCK_UI_TIME_BIG] = { clock_ui_time_big_enter,
 				clock_ui_time_big_refresh },
@@ -366,10 +511,14 @@ PROGMEM static const struct clock_ui_handler clock_ui_handlers[] = {
 			       clock_ui_chooser_refresh },
 	[CLOCK_UI_BRIGHTNESS] = { clock_ui_brightness_enter,
 				  clock_ui_brightness_refresh },
-
+	[CLOCK_UI_TIMER_SET] = { clock_ui_timer_set_enter,
+				 clock_ui_timer_set_refresh }
 };
 
 #define CLOCK_UI_BUTTON_CTR_MAX 10
+
+/* single externally exposed function, regularly called to update the
+   screen */
 
 void clock_ui_poll()
 {
@@ -379,6 +528,7 @@ void clock_ui_poll()
 	void (*on_enter)(uint8_t);
 	enum clock_ui_state (*on_refresh)(uint8_t);
 
+	/* get an event, this may be a "slowtick" or a keypress */
 	event = clock_timer_get_event();
 	curr = clock_ui_state;
 	on_refresh = pgm_read_ptr(&clock_ui_handlers[curr].on_refresh);

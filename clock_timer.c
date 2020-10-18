@@ -16,7 +16,7 @@
 #define CLOCK_TIMER_KEY_MASK 0xe0 /* 5, 6, 7 */
 #define CLOCK_TIMER_KEY_SHIFT 5
 
-static uint32_t clock_timer_wallclock = 0x01020304;
+static uint32_t clock_timer_wallclock;
 static uint16_t clock_timer_ticks;
 static uint8_t clock_timer_event;
 
@@ -55,8 +55,10 @@ ISR(TIMER1_CAPT_vect)
 					}
 				}
 			}
-			if (u.u32 == s.u32)
+			if (u.u32 == s.u32) {
 				timer_flags &= ~SYSCONFIG_TIMER_FLAGS_RUNNING;
+				u.u32 = 0;
+			}
 		} else {
 			/* carry chain down... */
 			if (u.hmsf.f == 0) {
@@ -76,8 +78,10 @@ ISR(TIMER1_CAPT_vect)
 			} else
 				u.hmsf.f--;
 
-			if (u.u32 == 0)
+			if (u.u32 == 0) {
 				timer_flags &= ~SYSCONFIG_TIMER_FLAGS_RUNNING;
+				u.u32 = s.u32;
+			}
 		}
 		clock_timer_wallclock = u.u32;
 		sysconfig.timer_flags = timer_flags;
@@ -235,4 +239,10 @@ void clock_timer_init()
 	TIMSK = _BV(TICIE1);
 	/* F_CPU = 8'000'000 / 64 / 1250 = 100 Hz overflow */
 	ICR1 = 1249;
+
+	if (sysconfig.timer_flags & SYSCONFIG_TIMER_FLAGS_DIR_DOWN) {
+		clock_timer_wallclock = sysconfig.timer_set.u32;
+	} else {
+		clock_timer_wallclock = 0;
+	}
 }

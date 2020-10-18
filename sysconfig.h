@@ -10,7 +10,10 @@
 #define SYSCONFIG_TIMER_FLAGS_RUNNING 0x01
 #define SYSCONFIG_TIMER_FLAGS_DIR_DOWN 0x02
 
+#define SYSCONFIG_MAGIC 0x4223
+
 struct sysconfig {
+	uint16_t magic;
 	uint8_t brightness;
 	uint8_t timer_flags;
 	uint8_t output_mode[NUM_OP_CHANNELS];
